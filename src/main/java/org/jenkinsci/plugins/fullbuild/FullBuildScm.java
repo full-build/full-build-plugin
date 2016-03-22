@@ -76,7 +76,7 @@ public class FullBuildScm extends SCM implements Serializable {
 			.getLogger("hudson.plugins.full-build.FullBuildScm");
 
 	// Advanced Fields:
-	@CheckForNull private String repoUrl;
+	@CheckForNull private String masterRepository;
 	@CheckForNull private String protocol;
 	@CheckForNull private boolean shallow;
 	@CheckForNull private String branch;
@@ -99,12 +99,12 @@ public class FullBuildScm extends SCM implements Serializable {
 	 * repo is fetched from aosp
 	 */
 	@Exported
-	public String getRepoUrl() {
-		return repoUrl;
+	public String getMasterRepository() {
+		return masterRepository;
 	}
 
     @DataBoundSetter
-    public void setRepoUrl(String repoUrl) { this.repoUrl = repoUrl; }
+    public void setMasterRepository(String masterRepository) { this.masterRepository = masterRepository; }
 
 	/**
 	 * Returns the name of the mirror directory. By default, this is null and
@@ -156,11 +156,11 @@ public class FullBuildScm extends SCM implements Serializable {
 	 * The constructor takes in user parameters and sets them. Each job using
 	 * the FullBuildScm will call this constructor.
 	 *
-	 * @param repoUrl The URL for the manifest repository.
+	 * @param masterRepository The URL for the manifest repository.
 	 */
 	@DataBoundConstructor
-	public FullBuildScm(final String repoUrl) {
-		this.repoUrl = repoUrl;
+	public FullBuildScm(final String masterRepository) {
+		this.masterRepository = masterRepository;
 		this.protocol = "gerrit";
 		this.branch = null;
 		this.shallow = true;
@@ -226,37 +226,8 @@ public class FullBuildScm extends SCM implements Serializable {
 		EnvVars env = build.getEnvironment(listener);
 		env = getEnvVars(env, job);
 		if (!checkoutCode(launcher, repoDir, env, listener.getLogger(), changelogFile)) {
-			throw new IOException("Could not init workspace");
-		}
-
-        build.addAction(new TagAction(build));
-/*
-        if (changelogFile != null) {
-            ChangeLog.saveChangeLog(currentState, previousState, changelogFile,
-                    launcher, repoDir, showAllChanges);
+            throw new IOException("Could not init workspace");
         }
-*/
-/*
-		final String manifest =
-				getStaticManifest(launcher, repoDir, listener.getLogger());
-		final String manifestRevision =
-				getManifestRevision(launcher, repoDir, listener.getLogger());
-		final String expandedBranch = env.expand(manifestBranch);
-		final RevisionState currentState =
-				new RevisionState(manifest, manifestRevision, expandedBranch,
-						listener.getLogger());
-		build.addAction(currentState);
-
-		final Run previousBuild = build.getPreviousBuild();
-		final RevisionState previousState =
-				getLastState(previousBuild, expandedBranch);
-
-		if (changelogFile != null) {
-			ChangeLog.saveChangeLog(currentState, previousState, changelogFile,
-					launcher, repoDir, showAllChanges);
-		}
-		build.addAction(new TagAction(build));
-		*/
 	}
 
 
@@ -276,7 +247,7 @@ public class FullBuildScm extends SCM implements Serializable {
 		commands.add(getDescriptor().getExecutable());
 		commands.add("init");
 		commands.add(env.expand(this.protocol));
-		commands.add(env.expand(this.repoUrl));
+		commands.add(env.expand(this.masterRepository));
 		commands.add(workspace.getRemote());
 		int initRetCode =
 				launcher.launch().stdout(logger).pwd(workspace)
@@ -351,7 +322,7 @@ public class FullBuildScm extends SCM implements Serializable {
 	public String getKey() {
 		return new StringBuilder("full-build")
 			.append(' ')
-			.append(getRepoUrl())
+			.append(this.masterRepository)
 			.toString();
 	}
 
