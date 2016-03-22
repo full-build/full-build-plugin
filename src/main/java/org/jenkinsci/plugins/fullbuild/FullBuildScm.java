@@ -78,7 +78,7 @@ public class FullBuildScm extends SCM implements Serializable {
 	// Advanced Fields:
 	@CheckForNull private String repoUrl;
 	@CheckForNull private String protocol;
-	@CheckForNull private Boolean shallow;
+	@CheckForNull private boolean shallow;
 	@CheckForNull private String branch;
     @CheckForNull private Set<String> repositories;
 
@@ -123,12 +123,12 @@ public class FullBuildScm extends SCM implements Serializable {
 	 * will sync the entire history.
 	 */
 	@Exported
-	public Boolean getShallow() {
+	public boolean getShallow() {
 		return this.shallow;
 	}
 
     @DataBoundSetter
-    public void setShallow(Boolean shallow) { this.shallow = shallow; }
+    public void setShallow(boolean shallow) { this.shallow = shallow; }
 
     /**
      * returns list of ignore projects.
@@ -148,6 +148,10 @@ public class FullBuildScm extends SCM implements Serializable {
                 Arrays.asList(repositories.split("\\s+")));
     }
 
+    @Override
+    public ChangeLogParser createChangeLogParser() {
+        return new ChangeLog();
+    }
 	/**
 	 * The constructor takes in user parameters and sets them. Each job using
 	 * the FullBuildScm will call this constructor.
@@ -224,6 +228,8 @@ public class FullBuildScm extends SCM implements Serializable {
 		if (!checkoutCode(launcher, repoDir, env, listener.getLogger(), changelogFile)) {
 			throw new IOException("Could not init workspace");
 		}
+
+        build.addAction(new TagAction(build));
 /*
         if (changelogFile != null) {
             ChangeLog.saveChangeLog(currentState, previousState, changelogFile,
@@ -254,7 +260,7 @@ public class FullBuildScm extends SCM implements Serializable {
 	}
 
 
-	private boolean checkoutCode(
+	final private boolean checkoutCode(
             final Launcher launcher,
             final FilePath workspace,
             final EnvVars env,
