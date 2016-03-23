@@ -1,26 +1,3 @@
-/*
- * The MIT License
- *
- * Copyright (c) 2010, Brad Larson
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
 package org.jenkinsci.plugins.fullbuild;
 
 import java.io.*;
@@ -118,7 +95,7 @@ public class FullBuildScm extends SCM implements Serializable {
     @DataBoundSetter
     public void setProtocol(String protocol) { this.protocol = protocol; }
 
-	/**
+	/**ß
 	 * Returns the depth used for sync.  By default, this is null and repo
 	 * will sync the entire history.
 	 */
@@ -141,10 +118,10 @@ public class FullBuildScm extends SCM implements Serializable {
     @DataBoundSetter
     public final void setIgnoreProjects(final String repositories) {
         if (repositories == null) {
-            this.repositories = Collections.<String>emptySet();
+            this.repositories = Collections.emptySet();
             return;
         }
-        this.repositories = new LinkedHashSet<String>(
+        this.repositories = new LinkedHashSet<>(
                 Arrays.asList(repositories.split("\\s+")));
     }
 
@@ -164,7 +141,7 @@ public class FullBuildScm extends SCM implements Serializable {
 		this.protocol = "gerrit";
 		this.branch = null;
 		this.shallow = true;
-        this.repositories = Collections.<String>emptySet();
+        this.repositories = Collections.emptySet();
 	}
 
 	@Override
@@ -172,13 +149,9 @@ public class FullBuildScm extends SCM implements Serializable {
 			@Nonnull final Run<?, ?> build, @Nullable final FilePath workspace,
 			@Nullable final Launcher launcher, @Nonnull final TaskListener listener
 			) throws IOException, InterruptedException {
-		// We add our SCMRevisionState from within checkout, so this shouldn't
-		// be called often. However it will be called if this is the first
-		// build, if a build was aborted before it reported the repository
-		// state, etc.
+        // do not really care - we will always build
 		return null;
 	}
-
 
 	/**
 	 * @param environment   an existing environment, which contains already
@@ -239,7 +212,7 @@ public class FullBuildScm extends SCM implements Serializable {
             File changelogFile)
 			throws IOException, InterruptedException {
 
-        final List<String> commands = new ArrayList<String>(4);
+        final List<String> commands = new ArrayList<>(4);
 
 		// init workspace first
         debug.log(Level.INFO, "Initializing workspace in: " + workspace.getName());
@@ -284,22 +257,23 @@ public class FullBuildScm extends SCM implements Serializable {
         }
 
         // get changes
-        debug.log(Level.INFO, "Getting changes");
-        commands.clear();
-        commands.add(getDescriptor().getExecutable());
-        commands.add("history");
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        int changeRetCode =
-                launcher.launch().stdout(byteArrayOutputStream).pwd(workspace)
-                        .cmds(commands).envs(env).join();
-        if (changeRetCode != 0) {
-            return false;
-        }
+        if(null != changelogFile) {
+            debug.log(Level.INFO, "Getting changes");
+            commands.clear();
+            commands.add(getDescriptor().getExecutable());
+            commands.add("history");
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            int changeRetCode =
+                    launcher.launch().stdout(byteArrayOutputStream).pwd(workspace)
+                            .cmds(commands).envs(env).join();
+            if (changeRetCode != 0) {
+                return false;
+            }
 
-        try (OutputStream outputStream = new FileOutputStream(changelogFile))
-        {
-            byteArrayOutputStream.writeTo(outputStream);
+            try (OutputStream outputStream = new FileOutputStream(changelogFile)) {
+                byteArrayOutputStream.writeTo(outputStream);
 
+            }
         }
 
         return true;
@@ -328,12 +302,12 @@ public class FullBuildScm extends SCM implements Serializable {
 
 	/**
 	 * A DescriptorImpl contains variables used server-wide. In our263 case, we
-	 * only store the path to the repo executable, which defaults to just
-	 * "repo". This class also handles some Jenkins housekeeping.
+	 * only store the path to the fullbuild executable, which defaults to just
+	 * "fullbuild". This class also handles some Jenkins housekeeping.
 	 */
 	@Extension
 	public static class DescriptorImpl extends SCMDescriptor<FullBuildScm> {
-		private String repoExecutable;
+		private String fbExecutable;
 
 		/**
 		 * Call the superclass constructor and load our configuration from the
@@ -353,7 +327,7 @@ public class FullBuildScm extends SCM implements Serializable {
 		public boolean configure(final StaplerRequest req,
 				final JSONObject json)
 				throws hudson.model.Descriptor.FormException {
-			repoExecutable =
+			fbExecutable =
 					Util.fixEmptyAndTrim(json.getString("executable"));
 			save();
 			return super.configure(req, json);
@@ -373,14 +347,14 @@ public class FullBuildScm extends SCM implements Serializable {
 		}
 
 		/**
-		 * Returns the command to use when running repo. By default, we assume
-		 * that repo is in the server's PATH and just return "repo".
+		 * Returns the command to use when running fullbuild. By default, we assume
+		 * that repo is in the server's PATH and just return "fullbuild".
 		 */
 		public String getExecutable() {
-			if (repoExecutable == null) {
-				return "fullbuild.exe";
+			if (fbExecutable == null) {
+				return "fullbuild";
 			} else {
-				return repoExecutable;
+				return fbExecutable;
 			}
 		}
 
